@@ -62,7 +62,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--save_dir", type=str,
+    parser.add_argument("--results_dir", type=str,
                         default="results/baseline_clip_linear")
     args = parser.parse_args()
 
@@ -91,7 +91,7 @@ def main():
         scores=scores,
         labels=labels,
         preds=preds,
-        results_path=args.save_dir
+        results_path=args.results_dir
     )
 
 

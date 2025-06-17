@@ -56,10 +56,12 @@ image → CLIP image encoder (frozen) → 512-d feature → Linear(512→2) → 
     ```
 -   dataset 下載: https://www.dropbox.com/t/2Amyu4D5TulaIofv
 
-### 訓練與評估（clip_lora_train_eval.py）
+### clip_lora_pipeline.py
+
+**--- 訓練與評估 ---**
 
 ```
-python clip_lora_train_eval.py \
+python clip_lora_pipeline.py \
   --data_root ./data \
   --model_name openai/clip-vit-base-patch32 \
   --prompt0 "AI-Generated face" \
@@ -70,19 +72,33 @@ python clip_lora_train_eval.py \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
-  --save_dir lora_checkpoints/sample_dir \
+  --lora_dir lora_checkpoints/sample_dir \
   --results_dir results/sample_dir \
   --mode train
 ```
 
-### 訓練與評估（clip_linear_eval.py）
+**--- Inference (單張圖片) ---**
 
 ```
-python clip_linear_eval.py \
+python clip_lora_pipeline.py \
+  --model_name openai/clip-vit-base-patch32 \
+  --prompt0 "AI-Generated face" \
+  --prompt1 "Authentic face" \
+  --lora_dir lora_checkpoints/sample_dir \
+  --image_path ./demo.jpg \
+  --mode inference
+```
+
+### clip_linear_pipeline.py
+
+**--- 訓練與評估 ---**
+
+```
+python clip_linear_pipeline.py \
   --data_root ./data \
   --epochs 3 \
   --lr 1e-4 \
-  --save_dir results/baseline_clip_linear
+  --results_dir results/baseline_clip_linear
 ```
 
 **參數說明**
@@ -105,9 +121,13 @@ python clip_linear_eval.py \
 
 `--lora_dropout`: LoRA dropout 比例
 
-`--save_dir`: 模式為 `train` 時，表示 儲存訓練後權重的資料夾；模式為 `eval` 時，表示 載入已訓練權重的資料夾
+`--lora_dir`: 模式為 `train` 時，表示 儲存訓練後權重的資料夾；模式為 `inference` 時，表示 載入已訓練權重的資料夾
 
 `--results_dir`: 儲存 frame/video 預測結果的資料夾
+
+`--mode`: train 或 inference
+
+`--image_path`: inference 專用。單張圖片路徑
 
 **輸出結果**
 
@@ -115,7 +135,7 @@ python clip_linear_eval.py \
 
 `video_results.json`: 將影片中的 frame 平均分數後分類。
 
-`adapter_model.safetensors`、`adapter_config.json`: LoRA 權重檔案，可供未來載入推論使用（儲存於 save_dir）
+`adapter_model.safetensors`、`adapter_config.json`: LoRA 權重檔案，可供未來載入推論使用 (儲存於 lora_dir)
 
 ## 5. 結果與討論
 

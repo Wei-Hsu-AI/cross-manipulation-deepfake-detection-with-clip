@@ -7,6 +7,7 @@ from transformers import CLIPModel, CLIPProcessor
 from peft import LoraConfig, get_peft_model
 from utils import save_prediction_results, seed_everything, evaluate_metrics, load_lora_adapter
 from dataset import build_dataloaders
+from PIL import Image
 
 
 def wrap_clip_with_lora(model_name, lora_r=32, lora_alpha=64, lora_dropout=0.05, target_modules=["q_proj", "v_proj", "k_proj", "out_proj"]):
@@ -88,32 +89,48 @@ def evaluate_model(clip, text_feats, val_loader, device):
     return preds, scores, labels, paths
 
 
+def predict_single_image(clip, text_feats, image_path, processor, device):
+    clip.eval()
+    img = Image.open(image_path).convert("RGB")
+    image = processor(images=img, return_tensors="pt")[
+        "pixel_values"].to(device)
+
+    with torch.no_grad():
+        feat = clip.get_image_features(pixel_values=image)
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+        prob = (feat @ text_feats.T).softmax(dim=-1).squeeze()
+
+    return {
+        "prob_fake": prob[1].item(),
+        "prob_real": prob[0].item(),
+        "pred_label": int(prob.argmax().item())
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root", type=str, required=True)
-    parser.add_argument("--model_name", type=str,
-                        default="openai/clip-vit-base-patch32")
-    parser.add_argument("--prompt0", type=str, default="AI-Generated face")
-    parser.add_argument("--prompt1", type=str, default="Authentic face")
-    parser.add_argument("--seed", type=int, default=42)
+    # --- 共用 ---
+    parser.add_argument("--model_name", default="openai/clip-vit-base-patch32")
+    parser.add_argument("--prompt0", default="AI-Generated face")
+    parser.add_argument("--prompt1", default="Authentic face")
+    parser.add_argument("--lora_dir", type=str,
+                        help="train: 權重輸出；inference: 權重載入")
+    parser.add_argument(
+        "--mode", choices=["train", "inference"], default="train")
+
+    # --- train 專用 ---
+    parser.add_argument("--data_root", help="僅 train 需要的資料根目錄")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--save_dir", type=str, default=None)
-    parser.add_argument("--results_dir", type=str, default=None)
     parser.add_argument("--lora_r", type=int, default=32)
     parser.add_argument("--lora_alpha", type=int, default=64)
     parser.add_argument("--lora_dropout", type=float, default=0.05)
-    parser.add_argument(
-        "--mode", choices=["train", "eval"], default="train", help="執行模式：train 或 eval")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--results_dir", help="輸出評估結果 (train 用)")
 
+    # --- inference 專用 ---
+    parser.add_argument("--image_path", help="單張圖片路徑 (inference 必填)")
     args = parser.parse_args()
-
-    # 自動命名資料夾
-    suffix = f"{args.prompt0.replace(' ', '_')}_vs_{args.prompt1.replace(' ', '_')}"
-    if args.save_dir is None:
-        args.save_dir = os.path.join("lora_checkpoints", suffix)
-    if args.results_dir is None:
-        args.results_dir = os.path.join("results", suffix)
 
     seed_everything(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -121,6 +138,15 @@ def main():
     processor = CLIPProcessor.from_pretrained(args.model_name)
 
     if args.mode == "train":
+        if not args.data_root:
+            raise ValueError("--data_root 為 train 必填")
+        # 自動命名資料夾
+        suffix = f"{args.prompt0.replace(' ', '_')}_vs_{args.prompt1.replace(' ', '_')}"
+        if args.lora_dir is None:
+            args.lora_dir = os.path.join("lora_checkpoints", suffix)
+        if args.results_dir is None:
+            args.results_dir = os.path.join("results", suffix)
+
         clip = wrap_clip_with_lora(
             model_name=args.model_name,
             lora_r=args.lora_r,
@@ -139,26 +165,42 @@ def main():
 
         train(clip, args.epochs, text_feats,
               train_loader, optimizer, scheduler, device)
-        os.makedirs(args.save_dir, exist_ok=True)
-        clip.vision_model.save_pretrained(args.save_dir)
-        print(f"✅ LoRA adapter saved to: {args.save_dir}")
+        os.makedirs(args.lora_dir, exist_ok=True)
+        clip.vision_model.save_pretrained(args.lora_dir)
+        print(f"✅ LoRA adapter saved to: {args.lora_dir}")
 
-    clip = load_lora_adapter(args.model_name, args.save_dir)
-    clip.to(device)
-    preds, scores, labels, paths = evaluate_model(
-        clip, text_feats, val_loader, device)
+        preds, scores, labels, paths = evaluate_model(
+            clip, text_feats, val_loader, device)
 
-    metrics = evaluate_metrics(scores, preds, labels)
-    print(
-        f"AUC: {metrics['AUC']:.3f}, F1: {metrics['F1']:.3f}, Accuracy: {metrics['Accuracy']:.3f}, EER: {metrics['EER']:.3f}")
+        metrics = evaluate_metrics(scores, preds, labels)
+        print(
+            f"AUC: {metrics['AUC']:.3f}, F1: {metrics['F1']:.3f}, Accuracy: {metrics['Accuracy']:.3f}, EER: {metrics['EER']:.3f}")
 
-    save_prediction_results(
-        paths=paths,
-        scores=scores,
-        labels=labels,
-        preds=preds,
-        results_path=args.results_dir
-    )
+        save_prediction_results(
+            paths=paths,
+            scores=scores,
+            labels=labels,
+            preds=preds,
+            results_path=args.results_dir
+        )
+
+    else:  # inference
+        if not args.image_path:
+            raise ValueError("--image_path 不能為空，請指定要推論的圖片")
+        # 載入 LoRA 權重
+        clip = load_lora_adapter(args.model_name, args.lora_dir)
+        clip.to(device)
+
+        text_feats = encode_prompts(
+            [args.prompt0, args.prompt1], clip, processor, device)
+        result = predict_single_image(
+            clip, text_feats, args.image_path, processor, device)
+
+        print(f"➡️  Image: {args.image_path}")
+        print(f"   Fake probability : {result['prob_fake']:.4f}")
+        print(f"   Real probability : {result['prob_real']:.4f}")
+        print(f"   Predicted label  : {result['pred_label']} (1=fake, 0=real)")
+        return
 
 
 if __name__ == "__main__":
