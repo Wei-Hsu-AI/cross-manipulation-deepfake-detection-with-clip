@@ -134,15 +134,13 @@ python clip_linear_eval.py \
 下圖為 **Frozen CLIP + Linear**（不含 LoRA / Prompt）在 NeuralTextures 上的 ROC 曲線，  
 AUC 僅 **0.603**，呈現接近隨機猜測的斜率；EER 高達 **0.441**，顯示模型對 unseen 操控幾乎無分辨力。
 
-![1750149117731](image/report/1750149117731.png)
+<img src="image/readme/1750152777193.png" width="280">
 
 下列三張 frame 為 Baseline 誤判（fake→real）示例，可見其未能聚焦臉部特徵，對背景色塊、光照或手勢產生誤導：
 
-![1750150890829](image/readme/1750150890829.png)
-
-![1750150920765](image/readme/1750150920765.png)
-
-![1750150925728](image/readme/1750150925728.png)
+<img src="image/readme/1750152785676.png" width="280">
+<img src="image/readme/1750152810452.png" width="280">
+<img src="image/readme/1750152813439.png" width="280">
 
 ### 5.2 LoRA + Prompt V1（“AI-Generated” / “Authentic”）
 
@@ -153,18 +151,18 @@ AUC 立即提升至 **0.792**（+0.189），EER 大幅下降至 **0.269**。
 
 ROC：
 
-![1750150541187](image/readme/1750150541187.png)
+<img src="image/readme/1750152823863.png" width="280">
 
 Saliency Map 示例（仍存在背景偏移問題）：
 
-![1750097944772](image/report/1750097944772.png)
-![1750097953699](image/report/1750097953699.png)
+<img src="image/readme/1750152881497.png" width="240">
+<img src="image/readme/1750152894170.png" width="240">
 
-![1750097959666](image/report/1750097959666.png)
-![1750097965764](image/report/1750097965764.png)
+<img src="image/readme/1750152897920.png" width="240">
+<img src="image/readme/1750152901217.png" width="240">
 
-![1750097971074](image/report/1750097971074.png)
-![1750097973367](image/report/1750097973367.png)
+<img src="image/readme/1750152905363.png" width="240">
+<img src="image/readme/1750152908477.png" width="240">
 
 -   背景高頻文字 / 圖示搶佔注意力 → 臉部 artifact 被忽略。
 -   F1-score 高 (0.927) 表示 recall 佳，但 AUC、EER 指出 decision 邊界仍受干擾。
@@ -180,18 +178,18 @@ Saliency Map 示例（仍存在背景偏移問題）：
 
 ROC：
 
-![1750098020411](image/report/1750098020411.png)
+<img src="image/readme/1750152919984.png" width="280">
 
 Face-aware prompt 能強化模型對臉部區域的對齊，顯著減少背景干擾：
 
-![1750098119979](image/report/1750098119979.png)
-![1750098125476](image/report/1750098125476.png)
+<img src="image/readme/1750152925768.png" width="240">
+<img src="image/readme/1750152928315.png" width="240">
 
-![1750098129515](image/report/1750098129515.png)
-![1750098133857](image/report/1750098133857.png)
+<img src="image/readme/1750152932573.png" width="240">
+<img src="image/readme/1750152935064.png" width="240">
 
-![1750098138814](image/report/1750098138814.png)
-![1750098142222](image/report/1750098142222.png)
+<img src="image/readme/1750152937752.png" width="240">
+<img src="image/readme/1750152940149.png" width="240">
 
 錯誤多集中於：
 
