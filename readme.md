@@ -91,7 +91,7 @@ python clip_linear_eval.py \
 
 `--model_name`: 使用的 CLIP 模型名稱（預設：openai/clip-vit-base-patch32）
 
-`--prompt0`, `--prompt1`: 對應於 class 0 與 class 1 的文字 prompt
+`--prompt0`, `--prompt1`: 對應於 class 0 與 class 1 的文字 prompt，如 "AI-Generated face"、"Authentic face"
 
 `--seed`: 隨機種子，保證可重現性
 
@@ -105,11 +105,9 @@ python clip_linear_eval.py \
 
 `--lora_dropout`: LoRA dropout 比例
 
-`--save_dir`: 儲存 LoRA adapter 權重的資料夾
+`--save_dir`: 模式為 `train` 時，表示 儲存訓練後權重的資料夾；模式為 `eval` 時，表示 載入已訓練權重的資料夾
 
 `--results_dir`: 儲存 frame/video 預測結果的資料夾
-
-`--adapter_dir`: 評估階段載入的 LoRA 權重資料夾（eval 用）
 
 **輸出結果**
 
@@ -117,7 +115,7 @@ python clip_linear_eval.py \
 
 `video_results.json`: 將影片中的 frame 平均分數後分類。
 
-`.bin, adapter_config.json`: LoRA 權重檔案，可用於未來載入推論。
+`adapter_model.safetensors`、`adapter_config.json`: LoRA 權重檔案，可供未來載入推論使用（儲存於 save_dir）
 
 ## 5. 結果與討論
 
