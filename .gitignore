@@ -5,3 +5,5 @@ venv
 *.ckpt
 *.pth
 *.npy
+
+report*

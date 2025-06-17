@@ -26,7 +26,7 @@ NeuralTextures → 僅在 val_loader
 
 -   **Train**：Real_youtube-train frames + FaceSwap frames
 -   **Val/Test**：Real_youtube-val frames + NeuralTextures frames
--   批次大小：train 32、val 1
+-   **batch size**：train 32、val 1
 
 ## 3. 方法
 
@@ -147,7 +147,7 @@ AUC 僅 **0.603**，呈現接近隨機猜測的斜率；EER 高達 **0.441**，�
 相同 LoRA 架構，僅替換線性 head 為 **prompt-cosine** 推理；  
 AUC 立即提升至 **0.792**（+0.189），EER 大幅下降至 **0.269**。
 
-文字 prompt 為 CLIP 提供語意對齊，將「偽造」概念映射至影像嵌入空間，無需再訓練線性層即可獲得顯著收益——與 R1 _Adapting VLMs…_ 觀察一致。
+文字 prompt 為 CLIP 提供語意對齊，將「偽造」概念映射至影像嵌入空間，無需再訓練線性層即可獲得顯著收益。
 
 ROC：
 
